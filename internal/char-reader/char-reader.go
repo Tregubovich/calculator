@@ -1,6 +1,9 @@
 package char_reader
 
-import "errors"
+import (
+	"errors"
+	"io"
+)
 
 type charReader struct {
 	text string
@@ -27,7 +30,7 @@ func (c *charReader) Next() (byte, error) {
 	if !c.Eof() {
 		return c.text[c.cur], nil
 	}
-	return 0, errors.New("EOF")
+	return 0, io.EOF
 }
 
 func (c *charReader) Test(set string) (bool, byte) {

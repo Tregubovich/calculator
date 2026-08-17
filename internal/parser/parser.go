@@ -32,7 +32,15 @@ func New(reader Reader) *parser {
 
 func (p *parser) Parse(text string) (float64, error) {
 	p.reader.Set(text)
-	return p.parseExpr()
+	res, err := p.parseExpr()
+	if err != nil {
+		return 0, err
+	}
+	if !p.reader.Eof() {
+		char, _ := p.reader.Next()
+		return 0, errors.New("Expected EOF, got " + string(char))
+	}
+	return res, nil
 }
 
 func (p *parser) parseExpr() (float64, error) {
@@ -106,7 +114,7 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 	if curBinOp >= len(BINOPS) {
 		return p.parseTerm()
 	}
-	ok, char := p.reader.Test("(" + DIGITS)
+	ok, _ := p.reader.Test("-" + "(" + DIGITS)
 	if ok {
 		res, err := p.parseBinOp(curBinOp + 1)
 		if err != nil {
@@ -127,14 +135,22 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 			}
 		}
 		next, err := p.reader.Expect(")" + OPS)
-		if p.reader.Eof() || next == ')' || PRIORS[next] < BINOPS[curBinOp].prior {
-			return res, nil
-		}
-		if err != nil {
+		if err != nil && !p.reader.Eof() {
 			return 0, err
 		}
+		if next == ')' || PRIORS[next] < BINOPS[curBinOp].prior {
+			return res, nil
+		}
+
 	}
-	return 0, errors.New("Unknown char: " + string(char))
+	if p.reader.Eof() {
+		return 0, errors.New("got EOF")
+	}
+	unknown, err := p.reader.Next()
+	if err != nil {
+		return 0, err
+	}
+	return 0, errors.New("Unknown char: " + string(unknown))
 }
 
 func (p *parser) parseTerm() (float64, error) {
@@ -149,6 +165,13 @@ func (p *parser) parseTerm() (float64, error) {
 		p.reader.Take(")")
 		return res, nil
 	}
+	if ok, _ := p.reader.Take("-"); ok {
+		res, err := p.parseExpr()
+		if err != nil {
+			return 0, err
+		}
+		return -res, nil
+	}
 	if ok, _ := p.reader.Test(DIGITS); ok {
 		res, err := p.parseNum()
 		if err != nil {
@@ -161,6 +184,9 @@ func (p *parser) parseTerm() (float64, error) {
 
 func (p *parser) parseNum() (float64, error) {
 	res := strings.Builder{}
+	if ok, _ := p.reader.Take("-"); ok {
+		res.WriteByte('-')
+	}
 	for {
 		ok, d := p.reader.Take("." + DIGITS)
 		if !ok {

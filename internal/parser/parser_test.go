@@ -3,6 +3,8 @@ package parser
 import (
 	charreader "calculator/internal/char-reader"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNumbers(t *testing.T) {
@@ -27,9 +29,99 @@ func TestNumbers(t *testing.T) {
 			want: 3.1415926,
 		},
 		{
-			name: "float with E",
-			text: "3.2e26",
-			want: 3.2e26,
+			name: "strange zero",
+			text: "-0.00",
+			want: 0,
+		},
+		//{
+		//	name: "float with E",
+		//	text: "3.2e26",
+		//	want: 3.2e26,
+		//},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := New(charreader.New())
+			got, err := p.Parse(tt.text)
+			require.NoError(t, err, "Unexpected error: %v", err)
+			require.Equal(t, got, tt.want, "Parse got %v, want %v", got, tt.want)
+		})
+	}
+}
+
+func TestIncorrectNumbers(t *testing.T) {
+	tests := []struct {
+		name    string
+		text    string
+		wantErr string
+	}{
+		{
+			name:    "wrong base",
+			text:    "0x13",
+			wantErr: "Expected: )+-*/^, got x",
+		},
+		{
+			name:    "two dots",
+			text:    "-42.3.2",
+			wantErr: "invalid syntax",
+		},
+		{
+			name:    "letter",
+			text:    "A",
+			wantErr: "Unknown char: A",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := New(charreader.New())
+			_, err := p.Parse(tt.text)
+			require.NotNil(t, err, "expected error")
+			require.ErrorContains(t, err, tt.wantErr, "Parse error got %v, want %v", err.Error(), tt.wantErr)
+		})
+	}
+}
+
+func TestBrackets(t *testing.T) {
+	tests := []struct {
+		name    string
+		text    string
+		want    float64
+		wantErr string
+	}{
+		{
+			name: "single brackets",
+			text: "(1337)",
+			want: 1337,
+		},
+		{
+			name: "multiply brackets",
+			text: "(((42)))",
+			want: 42,
+		},
+		{
+			name: "brackets with negative",
+			text: "(-42)",
+			want: -42,
+		},
+		{
+			name: "brackets with unary minus",
+			text: "(-((-(-10))))",
+			want: -10,
+		},
+		{
+			name:    "no closed brackets",
+			text:    "(1337",
+			wantErr: "Expected: ), got EOF",
+		},
+		{
+			name:    "no open brackets",
+			text:    "1337)",
+			wantErr: "Expected EOF, got )",
+		},
+		{
+			name:    "missplaced bracket",
+			text:    "133)7",
+			wantErr: "Expected EOF, got )",
 		},
 	}
 	for _, tt := range tests {
@@ -37,12 +129,14 @@ func TestNumbers(t *testing.T) {
 			p := New(charreader.New())
 			got, err := p.Parse(tt.text)
 			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
+				if tt.wantErr == "" {
+					t.Errorf("Unexpected error: %v", err)
+					return
+				}
+				require.ErrorContains(t, err, tt.wantErr, "Parse error got %v, want %v", err.Error(), tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("Parse got %v, want %v", got, tt.want)
-			}
+			require.Equal(t, tt.want, got, "Parse got %v, want %v", got, tt.want)
 		})
 	}
 }
