@@ -2,6 +2,7 @@ package parser
 
 import (
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -45,12 +46,13 @@ type BinOp struct {
 }
 
 var (
-	OPS    = "+-*/"
+	OPS    = "+-*/^"
 	PRIORS = map[byte]int{
 		'+': 1,
 		'-': 2,
 		'*': 10,
 		'/': 11,
+		'^': 20,
 	}
 	BINOPS = []*BinOp{
 		{
@@ -82,6 +84,19 @@ var (
 					return 0, errors.New("division by zero")
 				}
 				return f / s, nil
+			},
+		},
+		{
+			sym:   '^',
+			prior: 20,
+			op: func(f float64, s float64) (float64, error) {
+				if f < 0 {
+					return 0, errors.New("base must be non-negative")
+				}
+				if f == 0 && s < 0 {
+					return 0, errors.New("can't raise 0 to a negative power")
+				}
+				return math.Pow(f, s), nil
 			},
 		},
 	}
