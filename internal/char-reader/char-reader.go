@@ -42,7 +42,7 @@ func (c *charReader) Test(set string) (bool, byte) {
 			return true, set[i]
 		}
 	}
-	return false, 0
+	return false, c.text[c.cur]
 }
 
 func (c *charReader) Take(set string) (bool, byte) {

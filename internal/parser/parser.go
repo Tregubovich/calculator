@@ -9,6 +9,7 @@ import (
 
 const (
 	DIGITS = "0123456789"
+	OPS    = "+-*/^"
 )
 
 type Reader interface {
@@ -54,7 +55,6 @@ type BinOp struct {
 }
 
 var (
-	OPS    = "+-*/^"
 	PRIORS = map[byte]int{
 		'+': 1,
 		'-': 2,
@@ -134,8 +134,8 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 				break
 			}
 		}
-		next, err := p.reader.Expect(")" + OPS)
-		if err != nil && !p.reader.Eof() {
+		next, err := p.reader.Expect(OPS)
+		if err != nil && !p.reader.Eof() && next != ')' {
 			return 0, err
 		}
 		if next == ')' || PRIORS[next] < BINOPS[curBinOp].prior {
@@ -166,7 +166,7 @@ func (p *parser) parseTerm() (float64, error) {
 		return res, nil
 	}
 	if ok, _ := p.reader.Take("-"); ok {
-		res, err := p.parseExpr()
+		res, err := p.parseTerm()
 		if err != nil {
 			return 0, err
 		}
