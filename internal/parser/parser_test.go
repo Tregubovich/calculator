@@ -2,6 +2,7 @@ package parser
 
 import (
 	charreader "calculator/internal/char-reader"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -242,6 +243,37 @@ func TestPower(t *testing.T) {
 			name:    "zero with negative power",
 			text:    "(1+2-3)^(-4)",
 			wantErr: "negative power",
+		},
+	}
+	RunTests(t, tests)
+}
+
+func TestConstants(t *testing.T) {
+	tests := []testCase{
+		{
+			name: "pi",
+			text: "pi",
+			want: math.Pi,
+		},
+		{
+			name: "e",
+			text: "e",
+			want: math.E,
+		},
+		{
+			name: "phi",
+			text: "phi",
+			want: math.Phi,
+		},
+		{
+			name: "big expression",
+			text: "2*pi-11*e+(1/2*phi-pi^2)",
+			want: -32.67850221258432,
+		},
+		{
+			name:    "strange constant",
+			text:    "phga",
+			wantErr: "unknown letters",
 		},
 	}
 	RunTests(t, tests)

@@ -53,6 +53,14 @@ func (c *charReader) Take(set string) (bool, byte) {
 	return ok, char
 }
 
+func (c *charReader) TakeSeq(seq string) bool {
+	if c.cur+len(seq) <= len(c.text) && c.text[c.cur:c.cur+len(seq)] == seq {
+		c.cur += len(seq)
+		return true
+	}
+	return false
+}
+
 func (c *charReader) Expect(set string) (byte, error) {
 	ok, char := c.Test(set)
 	if !ok {

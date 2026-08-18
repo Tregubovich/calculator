@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	DIGITS = "0123456789"
-	OPS    = "+-*/^"
+	DIGITS     = "0123456789"
+	OPERATIONS = "+-*/^"
+	LETTERS    = "pe"
 )
 
 type Reader interface {
@@ -18,6 +19,7 @@ type Reader interface {
 	Next() (byte, error)
 	Test(set string) (bool, byte)
 	Take(set string) (bool, byte)
+	TakeSeq(seq string) bool
 	Expect(set string) (byte, error)
 }
 
@@ -116,7 +118,7 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 	if curBinOp >= len(BINOPS) {
 		return p.parseTerm()
 	}
-	ok, _ := p.reader.Test("-" + "(" + DIGITS)
+	ok, _ := p.reader.Test("-" + "(" + DIGITS + LETTERS)
 	if ok {
 		res, err := p.parseBinOp(curBinOp + 1)
 		if err != nil {
@@ -142,7 +144,7 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 				break
 			}
 		}
-		next, err := p.reader.Expect(OPS)
+		next, err := p.reader.Expect(OPERATIONS)
 		if err != nil && !p.reader.Eof() && next != ')' {
 			return 0, err
 		}
@@ -160,6 +162,14 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 	}
 	return 0, errors.New("Unknown char: " + string(unknown))
 }
+
+var (
+	CONSTANTS = map[string]float64{
+		"pi":  math.Pi,
+		"e":   math.E,
+		"phi": math.Phi,
+	}
+)
 
 func (p *parser) parseTerm() (float64, error) {
 	if ok, _ := p.reader.Take("("); ok {
@@ -187,7 +197,14 @@ func (p *parser) parseTerm() (float64, error) {
 		}
 		return res, nil
 	}
-	return 0, errors.New("unreachable")
+	if ok, _ := p.reader.Test(LETTERS); ok {
+		for name, value := range CONSTANTS {
+			if p.reader.TakeSeq(name) {
+				return value, nil
+			}
+		}
+	}
+	return 0, errors.New("unknown letters")
 }
 
 func (p *parser) parseNum() (float64, error) {
