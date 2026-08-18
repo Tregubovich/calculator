@@ -5,12 +5,14 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	math2 "calculator/internal/math"
 )
 
 const (
 	DIGITS     = "0123456789"
 	OPERATIONS = "+-*/^"
-	LETTERS    = "pelsc"
+	LETTERS    = "abcdefghijklmnopqrstuvwxyz"
 )
 
 type Reader interface {
@@ -116,7 +118,7 @@ var (
 
 func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 	if curBinOp >= len(BINOPS) {
-		return p.parseTerm()
+		return p.parseSuffix()
 	}
 	ok, _ := p.reader.Test("-" + "(" + DIGITS + LETTERS)
 	if ok {
@@ -180,68 +182,84 @@ var (
 		"ln": func(x float64) (float64, error) {
 			return math.Log(x), nil
 		},
+		"exp": func(x float64) (float64, error) {
+			return math.Exp(x), nil
+		},
 		"sqrt": func(x float64) (float64, error) {
 			return math.Sqrt(x), nil
 		},
 		"cbrt": func(x float64) (float64, error) {
 			return math.Cbrt(x), nil
 		},
+		"abs": func(x float64) (float64, error) {
+			return math.Abs(x), nil
+		},
+		"sin": func(x float64) (float64, error) {
+			return math.Sin(x), nil
+		},
+		"cos": func(x float64) (float64, error) {
+			return math.Cos(x), nil
+		},
+		"tan": func(x float64) (float64, error) {
+			return math.Tan(x), nil
+		},
+		"asin": func(x float64) (float64, error) {
+			return math.Asin(x), nil
+		},
+		"acos": func(x float64) (float64, error) {
+			return math.Acos(x), nil
+		},
+		"atan": func(x float64) (float64, error) {
+			return math.Atan(x), nil
+		},
 	}
 )
 
+func (p *parser) parseSuffix() (float64, error) {
+	res, err := p.parseTerm()
+	if err != nil {
+		return 0, err
+	}
+	if ok, _ := p.reader.Take("!"); ok {
+		return math2.Factorial(res)
+	}
+	return res, nil
+}
+
 func (p *parser) parseTerm() (float64, error) {
 	if ok, _ := p.reader.Take("("); ok {
-		res, err := p.parseExpr()
-		if err != nil {
-			return 0, err
-		}
-		if _, err := p.reader.Expect(")"); err != nil {
-			return 0, err
-		}
-		p.reader.Take(")")
-		return res, nil
+		return p.parseBrackets()
 	}
 	if ok, _ := p.reader.Take("-"); ok {
-		res, err := p.parseTerm()
-		if err != nil {
-			return 0, err
-		}
-		return -res, nil
+		return p.parseUnaryMinus()
 	}
 	if ok, _ := p.reader.Test(DIGITS); ok {
-		res, err := p.parseNum()
-		if err != nil {
-			return 0, err
-		}
-		return res, nil
+		return p.parseNum()
 	}
 	if ok, _ := p.reader.Test(LETTERS); ok {
-		for name, value := range CONSTANTS {
-			if p.reader.TakeSeq(name) {
-				return value, nil
-			}
-		}
-
-		for name, op := range FUNCTIONS {
-			if p.reader.TakeSeq(name) {
-				_, err := p.reader.Expect("(")
-				if err != nil {
-					return 0, err
-				}
-				p.reader.Take("(")
-				res, err := p.parseExpr()
-				if err != nil {
-					return 0, err
-				}
-				if _, err := p.reader.Expect(")"); err != nil {
-					return 0, err
-				}
-				p.reader.Take(")")
-				return op(res)
-			}
-		}
+		return p.parseLetters()
 	}
-	return 0, errors.New("unknown letters")
+	return 0, errors.New("unreachable")
+}
+
+func (p *parser) parseBrackets() (float64, error) {
+	res, err := p.parseExpr()
+	if err != nil {
+		return 0, err
+	}
+	if _, err := p.reader.Expect(")"); err != nil {
+		return 0, err
+	}
+	p.reader.Take(")")
+	return res, nil
+}
+
+func (p *parser) parseUnaryMinus() (float64, error) {
+	res, err := p.parseSuffix()
+	if err != nil {
+		return 0, err
+	}
+	return -res, nil
 }
 
 func (p *parser) parseNum() (float64, error) {
@@ -257,4 +275,32 @@ func (p *parser) parseNum() (float64, error) {
 		res.WriteByte(d)
 	}
 	return strconv.ParseFloat(res.String(), 64)
+}
+
+func (p *parser) parseLetters() (float64, error) {
+	for name, op := range FUNCTIONS {
+		if p.reader.TakeSeq(name) {
+			_, err := p.reader.Expect("(")
+			if err != nil {
+				return 0, err
+			}
+			p.reader.Take("(")
+			res, err := p.parseExpr()
+			if err != nil {
+				return 0, err
+			}
+			if _, err := p.reader.Expect(")"); err != nil {
+				return 0, err
+			}
+			p.reader.Take(")")
+			return op(res)
+		}
+	}
+
+	for name, value := range CONSTANTS {
+		if p.reader.TakeSeq(name) {
+			return value, nil
+		}
+	}
+	return 0, errors.New("unknown letters")
 }

@@ -29,7 +29,7 @@ func RunTests(t *testing.T, testCases []testCase) {
 				require.ErrorContains(t, err, tt.wantErr, "Parse error got %v, want %v", err.Error(), tt.wantErr)
 				return
 			}
-			require.Equal(t, tt.want, got, "Parse got %v, want %v", got, tt.want)
+			require.LessOrEqual(t, math.Abs(tt.want-got), 1e-9, "Parse got %v, want %v", got, tt.want)
 		})
 	}
 }
@@ -297,6 +297,11 @@ func TestFunctions(t *testing.T) {
 			want: 10,
 		},
 		{
+			name: "exp",
+			text: "exp(2)",
+			want: 7.38905609893065,
+		},
+		{
 			name: "sqrt",
 			text: "sqrt(34^4)",
 			want: 1156,
@@ -307,14 +312,60 @@ func TestFunctions(t *testing.T) {
 			want: 9,
 		},
 		{
+			name: "abs",
+			text: "abs(-12)",
+			want: 12,
+		},
+		{
 			name: "big expression",
-			text: "ln(e*log2(log10(100))+sqrt(2*pi)-cbrt(sqrt(64)))",
+			text: "ln(exp(1)*log2(log10(100))+sqrt(2*pi)-cbrt(sqrt(64)))",
 			want: 1.1709050748483818,
 		},
 		{
 			name:    "strange function",
 			text:    "sas(27^2)",
 			wantErr: "unknown",
+		},
+	}
+	RunTests(t, tests)
+}
+
+func TestTrigonometry(t *testing.T) {
+	tests := []testCase{
+		{
+			name: "sin",
+			text: "sin(-pi)",
+			want: 0,
+		},
+		{
+			name: "cos",
+			text: "cos(3*pi/4)",
+			want: -math.Sqrt(2) / 2,
+		},
+		{
+			name: "tan",
+			text: "tan(pi)",
+			want: 0,
+		},
+		{
+			name: "asin",
+			text: "asin(sin(0.67+2*pi))",
+			want: 0.67,
+		},
+		{
+			name: "acos",
+			text: "acos(0)",
+			want: math.Pi / 2,
+		},
+		{
+			name: "atan",
+			text: "atan(3)",
+			want: 1.24904577239,
+		},
+		{
+			name: "big expression",
+			text: "sin(2*pi)+(cos(4)^2+sin(4)^2)*tan(acos(sqrt(2)/2))",
+			want: 1,
 		},
 	}
 	RunTests(t, tests)
