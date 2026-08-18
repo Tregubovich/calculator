@@ -370,3 +370,29 @@ func TestTrigonometry(t *testing.T) {
 	}
 	RunTests(t, tests)
 }
+
+func TestFactorial(t *testing.T) {
+	tests := []testCase{
+		{
+			name: "factorial",
+			text: "6!",
+			want: 720,
+		},
+		{
+			name: "big expression",
+			text: "-3!^2*1!",
+			want: 36,
+		},
+		{
+			name:    "negative factorial",
+			text:    "(-2)!",
+			wantErr: "negative",
+		},
+		{
+			name:    "float factorial",
+			text:    "(1/2)!",
+			wantErr: "float",
+		},
+	}
+	RunTests(t, tests)
+}
