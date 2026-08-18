@@ -10,7 +10,7 @@ import (
 const (
 	DIGITS     = "0123456789"
 	OPERATIONS = "+-*/^"
-	LETTERS    = "pe"
+	LETTERS    = "pelsc"
 )
 
 type Reader interface {
@@ -169,6 +169,24 @@ var (
 		"e":   math.E,
 		"phi": math.Phi,
 	}
+
+	FUNCTIONS = map[string]func(float64) (float64, error){
+		"log2": func(x float64) (float64, error) {
+			return math.Log2(x), nil
+		},
+		"log10": func(x float64) (float64, error) {
+			return math.Log10(x), nil
+		},
+		"ln": func(x float64) (float64, error) {
+			return math.Log(x), nil
+		},
+		"sqrt": func(x float64) (float64, error) {
+			return math.Sqrt(x), nil
+		},
+		"cbrt": func(x float64) (float64, error) {
+			return math.Cbrt(x), nil
+		},
+	}
 )
 
 func (p *parser) parseTerm() (float64, error) {
@@ -201,6 +219,25 @@ func (p *parser) parseTerm() (float64, error) {
 		for name, value := range CONSTANTS {
 			if p.reader.TakeSeq(name) {
 				return value, nil
+			}
+		}
+
+		for name, op := range FUNCTIONS {
+			if p.reader.TakeSeq(name) {
+				_, err := p.reader.Expect("(")
+				if err != nil {
+					return 0, err
+				}
+				p.reader.Take("(")
+				res, err := p.parseExpr()
+				if err != nil {
+					return 0, err
+				}
+				if _, err := p.reader.Expect(")"); err != nil {
+					return 0, err
+				}
+				p.reader.Take(")")
+				return op(res)
 			}
 		}
 	}

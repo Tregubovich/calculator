@@ -278,3 +278,44 @@ func TestConstants(t *testing.T) {
 	}
 	RunTests(t, tests)
 }
+
+func TestFunctions(t *testing.T) {
+	tests := []testCase{
+		{
+			name: "log2",
+			text: "log2(8)",
+			want: 3,
+		},
+		{
+			name: "log10",
+			text: "log10(200)",
+			want: 2.301029995663981,
+		},
+		{
+			name: "ln",
+			text: "ln(e^10)",
+			want: 10,
+		},
+		{
+			name: "sqrt",
+			text: "sqrt(34^4)",
+			want: 1156,
+		},
+		{
+			name: "cbrt",
+			text: "cbrt(27^2)",
+			want: 9,
+		},
+		{
+			name: "big expression",
+			text: "ln(e*log2(log10(100))+sqrt(2*pi)-cbrt(sqrt(64)))",
+			want: 1.1709050748483818,
+		},
+		{
+			name:    "strange function",
+			text:    "sas(27^2)",
+			wantErr: "unknown",
+		},
+	}
+	RunTests(t, tests)
+}
