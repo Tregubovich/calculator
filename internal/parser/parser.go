@@ -51,6 +51,7 @@ func (p *parser) parseExpr() (float64, error) {
 type BinOp struct {
 	sym   byte
 	prior int
+	right bool
 	op    func(float64, float64) (float64, error)
 }
 
@@ -97,9 +98,10 @@ var (
 		{
 			sym:   '^',
 			prior: 20,
+			right: true,
 			op: func(f float64, s float64) (float64, error) {
-				if f < 0 {
-					return 0, errors.New("base must be non-negative")
+				if f < 0 && float64(int(s)) != s {
+					return 0, errors.New("with non-integer power base must be non-negative")
 				}
 				if f == 0 && s < 0 {
 					return 0, errors.New("can't raise 0 to a negative power")
@@ -122,7 +124,13 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 		}
 		for {
 			if ok, _ := p.reader.Take(string(BINOPS[curBinOp].sym)); ok {
-				secondTerm, err := p.parseBinOp(curBinOp + 1)
+				var secondTerm float64
+				var err error
+				if BINOPS[curBinOp].right {
+					secondTerm, err = p.parseBinOp(curBinOp)
+				} else {
+					secondTerm, err = p.parseBinOp(curBinOp + 1)
+				}
 				if err != nil {
 					return 0, err
 				}

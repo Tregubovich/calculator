@@ -7,12 +7,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testCase struct {
+	name    string
+	text    string
+	want    float64
+	wantErr string
+}
+
+func RunTests(t *testing.T, testCases []testCase) {
+	t.Helper()
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			p := New(charreader.New())
+			got, err := p.Parse(tt.text)
+			if err != nil {
+				if tt.wantErr == "" {
+					t.Errorf("Unexpected error: %v", err)
+					return
+				}
+				require.ErrorContains(t, err, tt.wantErr, "Parse error got %v, want %v", err.Error(), tt.wantErr)
+				return
+			}
+			require.Equal(t, tt.want, got, "Parse got %v, want %v", got, tt.want)
+		})
+	}
+}
+
 func TestNumbers(t *testing.T) {
-	tests := []struct {
-		name string
-		text string
-		want float64
-	}{
+	tests := []testCase{
 		{
 			name: "positive integer",
 			text: "1337",
@@ -38,28 +60,6 @@ func TestNumbers(t *testing.T) {
 			text: "-0.00",
 			want: 0,
 		},
-		//{
-		//	name: "float with E",
-		//	text: "3.2e26",
-		//	want: 3.2e26,
-		//},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := New(charreader.New())
-			got, err := p.Parse(tt.text)
-			require.NoError(t, err, "Unexpected error: %v", err)
-			require.Equal(t, got, tt.want, "Parse got %v, want %v", got, tt.want)
-		})
-	}
-}
-
-func TestIncorrectNumbers(t *testing.T) {
-	tests := []struct {
-		name    string
-		text    string
-		wantErr string
-	}{
 		{
 			name:    "wrong base",
 			text:    "0x13",
@@ -75,31 +75,24 @@ func TestIncorrectNumbers(t *testing.T) {
 			text:    "A",
 			wantErr: "Unknown char: A",
 		},
+		//{
+		//	name: "float with E",
+		//	text: "3.2e26",
+		//	want: 3.2e26,
+		//},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := New(charreader.New())
-			_, err := p.Parse(tt.text)
-			require.NotNil(t, err, "expected error")
-			require.ErrorContains(t, err, tt.wantErr, "Parse error got %v, want %v", err.Error(), tt.wantErr)
-		})
-	}
+	RunTests(t, tests)
 }
 
 func TestBrackets(t *testing.T) {
-	tests := []struct {
-		name    string
-		text    string
-		want    float64
-		wantErr string
-	}{
+	tests := []testCase{
 		{
 			name: "single brackets",
 			text: "(1337)",
 			want: 1337,
 		},
 		{
-			name: "multiply brackets",
+			name: "multiple brackets",
 			text: "(((42)))",
 			want: 42,
 		},
@@ -129,30 +122,11 @@ func TestBrackets(t *testing.T) {
 			wantErr: "Expected EOF, got )",
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := New(charreader.New())
-			got, err := p.Parse(tt.text)
-			if err != nil {
-				if tt.wantErr == "" {
-					t.Errorf("Unexpected error: %v", err)
-					return
-				}
-				require.ErrorContains(t, err, tt.wantErr, "Parse error got %v, want %v", err.Error(), tt.wantErr)
-				return
-			}
-			require.Equal(t, tt.want, got, "Parse got %v, want %v", got, tt.want)
-		})
-	}
+	RunTests(t, tests)
 }
 
 func TestBinaryOperators(t *testing.T) {
-	tests := []struct {
-		name    string
-		text    string
-		want    float64
-		wantErr string
-	}{
+	tests := []testCase{
 		{
 			name: "add",
 			text: "1+2",
@@ -214,19 +188,61 @@ func TestBinaryOperators(t *testing.T) {
 			wantErr: "Expected: +-*/^, got @",
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := New(charreader.New())
-			got, err := p.Parse(tt.text)
-			if err != nil {
-				if tt.wantErr == "" {
-					t.Errorf("Unexpected error: %v", err)
-					return
-				}
-				require.ErrorContains(t, err, tt.wantErr, "Parse error got %v, want %v", err.Error(), tt.wantErr)
-				return
-			}
-			require.Equal(t, tt.want, got, "Parse got %v, want %v", got, tt.want)
-		})
+	RunTests(t, tests)
+}
+
+func TestPower(t *testing.T) {
+	tests := []testCase{
+		{
+			name: "simple",
+			text: "3^2",
+			want: 9,
+		},
+		{
+			name: "negative base",
+			text: "(-2)^5",
+			want: -32,
+		},
+		{
+			name: "negative power",
+			text: "2^-2",
+			want: 0.25,
+		},
+		{
+			name: "zero",
+			text: "0^1000",
+			want: 0,
+		},
+		{
+			name: "one",
+			text: "1^1000000000",
+			want: 1,
+		},
+		{
+			name: "float power",
+			text: "9^(1/2)",
+			want: 3,
+		},
+		{
+			name: "multiple power",
+			text: "4^2^3",
+			want: 65536,
+		},
+		{
+			name: "big expression",
+			text: "5^(-15)^3*18*(-5+37.89)/2.737^(-9)+26^0-39",
+			want: -38,
+		},
+		{
+			name:    "negative root",
+			text:    "-2^(1/2)",
+			wantErr: "negative",
+		},
+		{
+			name:    "zero with negative power",
+			text:    "(1+2-3)^(-4)",
+			wantErr: "negative power",
+		},
 	}
+	RunTests(t, tests)
 }
