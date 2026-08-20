@@ -396,3 +396,19 @@ func TestFactorial(t *testing.T) {
 	}
 	RunTests(t, tests)
 }
+
+func TestWhitespace(t *testing.T) {
+	tests := []testCase{
+		{
+			name: "space",
+			text: "10^ 2* cos(    1099 ) ^ (-22)+tan( 38)-6* 8 9-20- 8+3   -9*7^ 8/22   .73",
+			want: -2.279444887248568e6,
+		},
+		{
+			name: "whitespaces",
+			text: "7 \t + \n\n(5 * 11\r)",
+			want: 62,
+		},
+	}
+	RunTests(t, tests)
+}

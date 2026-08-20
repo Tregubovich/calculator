@@ -3,6 +3,7 @@ package char_reader
 import (
 	"errors"
 	"io"
+	"unicode"
 )
 
 type charReader struct {
@@ -27,6 +28,7 @@ func (c *charReader) Eof() bool {
 }
 
 func (c *charReader) Next() (byte, error) {
+	c.skip()
 	if !c.Eof() {
 		return c.text[c.cur], nil
 	}
@@ -34,6 +36,7 @@ func (c *charReader) Next() (byte, error) {
 }
 
 func (c *charReader) Test(set string) (bool, byte) {
+	c.skip()
 	if c.Eof() {
 		return false, 0
 	}
@@ -54,6 +57,7 @@ func (c *charReader) Take(set string) (bool, byte) {
 }
 
 func (c *charReader) TakeSeq(seq string) bool {
+	c.skip()
 	if c.cur+len(seq) <= len(c.text) && c.text[c.cur:c.cur+len(seq)] == seq {
 		c.cur += len(seq)
 		return true
@@ -67,6 +71,12 @@ func (c *charReader) Expect(set string) (byte, error) {
 		return char, errors.New("Expected: " + set + ", got " + c.curChar())
 	}
 	return char, nil
+}
+
+func (c *charReader) skip() {
+	for c.cur < len(c.text) && unicode.IsSpace(rune(c.text[c.cur])) {
+		c.cur++
+	}
 }
 
 func (c *charReader) curChar() string {
