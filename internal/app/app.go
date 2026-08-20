@@ -41,7 +41,8 @@ func RunWithWebInteractor() {
 	})
 	mux.HandleFunc("/eval", interactor.Handler)
 
-	err := http.ListenAndServe(":6969", mux)
+	fmt.Println("Starting server on port: 7070")
+	err := http.ListenAndServe(":7070", mux)
 	if err != nil {
 		fmt.Println(err)
 	}

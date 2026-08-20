@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	app.RunWithWebInteractor()
+	app.RunWithCLI()
 }
