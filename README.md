@@ -2,6 +2,20 @@
 
 Автор: Трегубович Андрей
 
+## Установка и запуск
+### Установка
+```bash
+git clone https://github.com/Tregubovich/calculator.git
+cd calculator
+go build -o out/calculator calculator/cmd
+chmod u+x out/calculator
+```
+
+### Запуск
+```bash
+./out/calculator
+```
+
 ## Поддерживаемые интерфейсы
 - CLI
 - HTTP
