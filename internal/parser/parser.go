@@ -107,8 +107,8 @@ var (
 				if f < 0 && float64(int(s)) != s {
 					return 0, errors.New("with non-integer power base must be non-negative")
 				}
-				if f == 0 && s < 0 {
-					return 0, errors.New("can't raise 0 to a negative power")
+				if f == 0 && s <= 0 {
+					return 0, errors.New("can't raise 0 to a non-positive number")
 				}
 				return math.Pow(f, s), nil
 			},
@@ -162,7 +162,7 @@ func (p *parser) parseBinOp(curBinOp int) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return 0, errors.New("Unknown char: " + string(unknown))
+	return 0, errors.New("Unexpected char: " + string(unknown) + " (expected (, digit or letter)")
 }
 
 var (
@@ -174,18 +174,30 @@ var (
 
 	FUNCTIONS = map[string]func(float64) (float64, error){
 		"log2": func(x float64) (float64, error) {
+			if x <= 0 {
+				return 0, errors.New("log must be positive")
+			}
 			return math.Log2(x), nil
 		},
 		"log10": func(x float64) (float64, error) {
+			if x <= 0 {
+				return 0, errors.New("log must be positive")
+			}
 			return math.Log10(x), nil
 		},
 		"ln": func(x float64) (float64, error) {
+			if x <= 0 {
+				return 0, errors.New("log must be positive")
+			}
 			return math.Log(x), nil
 		},
 		"exp": func(x float64) (float64, error) {
 			return math.Exp(x), nil
 		},
 		"sqrt": func(x float64) (float64, error) {
+			if x <= 0 {
+				return 0, errors.New("log must be positive")
+			}
 			return math.Sqrt(x), nil
 		},
 		"cbrt": func(x float64) (float64, error) {
@@ -204,9 +216,15 @@ var (
 			return math.Tan(x), nil
 		},
 		"asin": func(x float64) (float64, error) {
+			if x < -1 || x > 1 {
+				return 0, errors.New("asin must be between -1 and 1")
+			}
 			return math.Asin(x), nil
 		},
 		"acos": func(x float64) (float64, error) {
+			if x < -1 || x > 1 {
+				return 0, errors.New("acos must be between -1 and 1")
+			}
 			return math.Acos(x), nil
 		},
 		"atan": func(x float64) (float64, error) {

@@ -1,8 +1,14 @@
 package math
 
-import "errors"
+import (
+	"errors"
+	"math"
+)
 
 func Factorial(x float64) (float64, error) {
+	if x > 500 {
+		return math.Inf(1), nil
+	}
 	if x < 0 {
 		return 0, errors.New("factorial: negative number")
 	}
